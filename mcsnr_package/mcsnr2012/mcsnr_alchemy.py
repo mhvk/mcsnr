@@ -859,6 +859,46 @@ class Candidate(Base, GeminiUtilDBMixin, CandidateWiki):
             bv_unc=np.sqrt(self.mcps.b_err**2+self.mcps.v_err**2)
         )
 
+
+class SpectralStellarParameters(Base):
+    __tablename__ = 'spectral_stellar_parameters'
+
+    id = Column(Integer, primary_key=True)
+
+    candidate_id
+
+    npol = Column(Integer)
+
+    teff = Column(Float)
+    teff_uncertainty = Column(Float)
+    teff_fixed = Column(Boolean)
+
+    logg = Column(Float)
+    logg_uncertainty = Column(Float)
+    logg_fixed = Column(Boolean)
+
+    feh = Column(Float)
+    feh_uncertainty = Column(Float)
+    feh_fixed = Column(Boolean)
+
+
+    vrad = Column(Float)
+    vrad_uncertainty = Column(Float)
+    vrad_fixed = Column(Boolean)
+
+    vrot = Column(Float)
+    vrot_uncertainty = Column(Float)
+    vrot_fixed = Column(Boolean)
+
+    fitted = Column(Boolean, default=False)
+
+    fit_quality = Column(Integer)
+
+
+    candidate = relationship(Candidate, uselist=False,
+                             backref='spectral_stellar_parameters')
+
+
 class PreliminaryStellarParameters(Base):
     __tablename__ = 'preliminary_stellar_parameters'
 

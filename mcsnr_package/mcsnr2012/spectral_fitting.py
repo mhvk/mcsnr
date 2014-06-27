@@ -8,6 +8,51 @@ from astropy.table import Table
 
 from geminiutil.gmos.alchemy.mos import MOSSpectrum
 
+from specgrid.composite import ModelStar
+from specgrid.plugins import (Interpolate, Normalize, Convolve,
+                              RotationalBroadening, DopplerShift)
+
+from specutils import Spectrum1D
+
+parameters = {'teff', 'logg', 'feh', 'vrot', 'vrad'}
+
+def init_spectral_parameters(self, **kwargs):
+    """
+    Initializing parameters for spectrum
+
+    Parameters
+    ----------
+
+    kwargs :
+
+    """
+
+    self.spectral_parameters = OrderedDict([('teff', 5780.), ('logg', 4.4),
+                                            ('feh', 0.0), ('vrot', 1e-5),
+                                            ('vrad', 0)])
+
+    self.spectral_parameters.update(OrderedDict(
+        [(key + '_uncertainty', np.nan) for key in self.spectral_parameters]))
+
+
+    self.spectral_parameters.update(OrderedDict(
+        [(key + '_fixed', False) for key in self.spectral_parameters]))
+
+    self.spectral_parameters['npol'] = 5
+    self.spectral_parameters.update(kwargs)
+
+
+def get_synthetic_spectrum(self):
+    for param in parameters:
+        setattr(self.model_star, param, self.spectral_parameters[param])
+
+
+def fit_spectrum(self, kwargs):
+    """
+
+    :param kwargs:
+    :return:
+    """
 
 def get_model_spectrum(self, **kwargs):
     
@@ -220,6 +265,35 @@ def minchi2(chi2, vrange=None, sigrange=None, fitcol='chi2fit'):
     return chi2.meta['vbest'], chi2.meta['verr'], chi2.meta['bestchi2']
 
 
+def get_model_star(self, spectral_grid, npol=5):
+    """
+    Initialize model_star
+
+    Parameters
+    ----------
+
+    spectral_grid : BaseSpectralGrid
+
+
+    """
+
+    rot = RotationalBroadening()
+    doppler = DopplerShift()
+    interp = Interpolate(self.to_spectrum_1d())
+    norm = Normalize(self.to_spectrum_1d(), npol)
+
+    model_star = ModelStar([spectral_grid, rot, doppler, interp, norm])
+
+    return model_star
+
+def to_spectrum_1d(self):
+    return Spectrum1D.from_array(self.wavelength.value, self.flux.value,
+                          unit=self.flux.unit,
+                          dispersion_unit=self.wavelength.unit)
+
+MOSSpectrum.init_spectral_parameters = init_spectral_parameters
+MOSSpectrum.to_spectrum_1d = to_spectrum_1d
+MOSSpectrum.get_model_star = get_model_star
 MOSSpectrum.get_spectral_fit = get_spectral_fit
 MOSSpectrum._spectral_fit = _spectral_fit
 MOSSpectrum._normalize = _normalize
